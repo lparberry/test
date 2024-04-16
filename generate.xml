@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="IRIS" version="26" zv="IRIS for UNIX (Apple macOS for Apple Silicon) 2023.3.0SQL (Build 191U)" ts="2024-04-16 15:29:55">
+<Class name="HS.Local.OAuth2.Server.Generate">
+<Description><![CDATA[
+Custom class to implement available callbacks in super class. <br />
+ONLY methods marked with @API.Overrideable in the super class can be overridden. <br />
+This SHOULD NEVER have methods present in it on a new install. ALL methods
+MUST only be defined in the super class. This is so that on upgrades, changes
+to methods can be reflected in the super class as code in HS.Local classes
+is left unchanged. <br />]]></Description>
+<Super>HS.OAuth2.Server.Custom.Generate</Super>
+<TimeChanged>66946,55392.936363</TimeChanged>
+<TimeCreated>66946,55355.483567</TimeCreated>
+
+<Method name="GenerateAccessToken">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>pProperties:%OAuth2.Server.Properties</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+     Set tStatus = $$$OK
+    Try{
+  
+        #dim tJWTHeaderClaims As %Collection.ArrayOfObj
+        Set tJWTHeaderClaims = pProperties.JWTHeaderClaims
+        If 'tJWTHeaderClaims.IsDefined("jku") {
+            Set tNewClaim = ##class(%OAuth2.Server.Claim).%New()
+            Set tStatus = tJWTHeaderClaims.SetAt(tNewClaim, "jku")
+            $$$ThrowOnError(tStatus)
+        }
+  
+        If 'tJWTHeaderClaims.IsDefined("iat") {
+          Set tNewClaim = ##class(%OAuth2.Server.Claim).%New()
+          Set tStatus = tJWTHeaderClaims.SetAt(tNewClaim, "iat")
+          $$$ThrowOnError(tStatus)
+          Set tTime = ##class(%OAuth2.Utils).TimeInSeconds($ztimestamp,0)
+          Do pProperties.SetClaimValue("iat",tTime,"number")
+        }
+  
+        // Assign the key "subject" to the value of "client_id".
+        // Note: the method of the parent class is invoked in the %SYS namespace
+        // because it calls code that is only available in %SYS.
+        new $namespace
+        set $namespace = "%SYS"
+        do pProperties.ResponseProperties.SetAt(pProperties.CustomProperties.GetAt("client_id"), "subject")
+    }
+  
+      Catch ex{
+        Set tStatus = ex.AsStatus()
+    }
+     Quit tStatus
+]]></Implementation>
+</Method>
+</Class>
+</Export>
